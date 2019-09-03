@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">Popular Movies</string>
+    <string name="action_sort">Sort</string>
+    <string name="action_sort_popular">Most popular</string>
+    <string name="action_sort_rating">Highest-rated</string>
+    <string name="poster_width">200dp</string>
+
+    <string name="load_error">Load error</string>
+    <string name="error_loading">
+        Load error. Internet is required for this app.
+    </string>
+
+    <!-- Details-->
+    <string name="detail_poster_content_description">Movie poster image thumbnail</string>
+    <string name="detail_original_title_label">Original title:</string>
+    <string name="detail_plot_synopsis_label">Plot synopsis:</string>
+    <string name="detail_user_rating_label">User rating:</string>
+    <string name="detail_release_date_label">Release Date:</string>
+</resources>

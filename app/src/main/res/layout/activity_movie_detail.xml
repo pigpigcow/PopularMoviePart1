@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MovieDetailActivity">
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <ImageView
+            android:id="@+id/image_poster_iv"
+            android:layout_width="@dimen/poster_width"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:layout_gravity="center"
+            android:contentDescription="@string/detail_poster_content_description"
+            android:scaleType="centerCrop" />
+        <LinearLayout style="@style/customRow">
+            <TextView
+                style="@style/customKey"
+                android:text="@string/detail_original_title_label"/>
+            <TextView
+                android:id="@+id/origin_title_tv"
+                style="@style/customValue"/>
+        </LinearLayout>
+        <LinearLayout style="@style/customRow">
+            <TextView
+                style="@style/customKey"
+                android:text="@string/detail_plot_synopsis_label"/>
+            <TextView
+                android:id="@+id/plot_synopsis_tv"
+                style="@style/customValue"/>
+        </LinearLayout>
+        <LinearLayout style="@style/customRow">
+            <TextView
+                style="@style/customKey"
+                android:text="@string/detail_user_rating_label"/>
+            <TextView
+                android:id="@+id/user_rating_tv"
+                style="@style/customValue"/>
+        </LinearLayout>
+        <LinearLayout style="@style/customRow">
+            <TextView
+                style="@style/customKey"
+                android:text="@string/detail_release_date_label"/>
+            <TextView
+                android:id="@+id/release_date_tv"
+                style="@style/customValue"/>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
