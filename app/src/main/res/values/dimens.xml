@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="poster_width">200dp</dimen>
+    <dimen name="poster_width">220dp</dimen>
+    <dimen name="poster_width_landscape">190dp</dimen>
+    <dimen name="poster_favourite_width">60dp</dimen>
+    <dimen name="mid_margin">10dp</dimen>
 </resources>

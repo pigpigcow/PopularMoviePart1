@@ -8,11 +8,35 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="errorMessage">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:padding">16dp</item>
+        <item name="android:text">"@string/error_loading"</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:visibility">invisible</item>
+    </style>
+    <style name="indicator">
+        <item name="android:visible">false</item>
+        <item name="android:layout_height">42dp</item>
+        <item name="android:layout_width">42dp</item>
+        <item name="android:layout_gravity">center</item>
+    </style>
+    <style name="customRowPortrait">
+        <item name="android:padding">10dp</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+    </style>
     <style name="customRow">
         <item name="android:padding">10dp</item>
         <item name="android:orientation">horizontal</item>
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
+    </style>
+    <style name="customRowTrailerAndReview" parent="customRow">
+        <item name="android:orientation">vertical</item>
+        <item name="android:layout_height">600dp</item>
     </style>
     <style name="customKey">
         <item name="android:textSize">16sp</item>
@@ -21,9 +45,41 @@
         <item name="android:layout_width">120dp</item>
         <item name="android:layout_height">wrap_content</item>
     </style>
+    <style name="listGroupKey" parent="customKey">
+        <item name="android:textSize">20sp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_margin">@dimen/mid_margin</item>
+    </style>
     <style name="customValue">
         <item name="android:textSize">16sp</item>
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
+    </style>
+    <style name="FavButton">
+        <item name="android:layout_margin">@dimen/mid_margin</item>
+        <item name="android:layout_width">@dimen/poster_favourite_width</item>
+        <item name="android:layout_height">@dimen/poster_favourite_width</item>
+        <item name="android:background">@drawable/button_favorite</item>
+        <item name="android:layout_gravity">bottom|right</item>
+        <item name="android:checked">false</item>
+        <item name="android:text"></item>
+        <item name="android:textOff"></item>
+        <item name="android:textOn"></item>
+    </style>
+    <style name="detailList">
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:indicatorLeft">?android:attr/expandableListPreferredItemIndicatorLeft</item>
+        <item name="android:divider">@android:color/darker_gray</item>
+        <item name="android:dividerHeight">0.5dp</item>
+        <item name="android:layout_marginBottom">20dp</item>
+        <item name="android:visibility">invisible</item>
+    </style>
+    <style name="customList" parent="customValue">
+        <item name="android:visibility">invisible</item>
+    </style>
+    <style name="customValuePaddingBottom" parent="customValue">
+        <item name="android:padding">20dp</item>
     </style>
 </resources>

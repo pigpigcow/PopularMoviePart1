@@ -1,64 +1,60 @@
 package com.example.popularmovies;
 
 import android.content.Context;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.TextView;
+import android.widget.ToggleButton;
 
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.popularmovies.database.FavouriteMovieEntry;
 import com.example.popularmovies.model.MovieDetail;
 import com.squareup.picasso.Picasso;
 
+import java.util.HashMap;
 import java.util.List;
+
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapterViewHolder> {
 
     private List<MovieDetail> mMovieData;
     private final MovieAdapterOnClickHandler mClickHandler;
+    private HashMap<Integer, FavouriteMovieEntry> mFavMap = new HashMap<>();
 
-    /**
-     * The interface that receives onClick messages.
-     */
+    MainActivity mainActivity;
+
     public interface MovieAdapterOnClickHandler {
         void onClick(MovieDetail md);
+        void onFavouriteClick(MovieDetail md);
     }
 
-    /**
-     * Creates a MovieAdapter.
-     *
-     * @param clickHandler The on-click handler for this adapter. This single handler is called
-     *                     when an item is clicked.
-     */
     public MovieAdapter(MovieAdapterOnClickHandler clickHandler) {
         mClickHandler = clickHandler;
     }
 
-    /**
-     * Cache of the children views for a movie detail list item.
-     */
     public class MovieAdapterViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
-        private TextView originalTitleTV;
-        private TextView synopsisTV;
-        private TextView ratingTV;
-        private TextView releaseDateTV;
-        private ImageView mPoster;
+        @BindView(R.id.image_iv) ImageView mPoster;
+        @BindView(R.id.button_favorite) ToggleButton mFavorite;
+        MovieDetail md;
+
         private View view;
 
         private MovieAdapterViewHolder(View view) {
             super(view);
-
-            mPoster = view.findViewById(R.id.image_iv);
             this.view = view;
+            ButterKnife.bind(this, view);
 
             view.setOnClickListener(this);
         }
 
         private void populateUI(MovieDetail md) {
-            Log.v("test", "test");
+            this.md = md;
+            mFavorite.setChecked(md.isFavourite());
             Picasso.with(this.view.getContext())
                     .load(md.getImage())
                     .placeholder(R.mipmap.ic_launcher)
@@ -73,10 +69,41 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
          */
         @Override
         public void onClick(View v) {
-            int adapterPosition = getAdapterPosition();
-            MovieDetail md = mMovieData.get(adapterPosition);
             mClickHandler.onClick(md);
         }
+
+        @OnClick(R.id.button_favorite)
+        public void onFavouriteClick(View view) {
+            mClickHandler.onFavouriteClick(md);
+        }
+    }
+
+    /**
+     * When data changes, this method updates the list of taskEntries
+     * and notifies the adapter to use the new values on it
+     */
+    public void setFavourites(List<FavouriteMovieEntry> entryList) {
+        if(entryList != null) {
+            mFavMap = new HashMap<>();
+            for(FavouriteMovieEntry entry : entryList) {
+                mFavMap.put(entry.getId(), entry);
+            }
+        }
+
+        if(mMovieData != null && !mMovieData.isEmpty()) {
+            for(MovieDetail md : mMovieData) {
+                md.setFavourite( mFavMap.get(md.getId()) != null);
+            }
+        }
+        notifyDataSetChanged();
+    }
+
+    /**
+     * Returns the number of items to display.
+     */
+    @Override
+    public int getItemCount() {
+        return mMovieData == null ? 0 : mMovieData.size();
     }
 
     /**
@@ -91,11 +118,10 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
     @Override
     public MovieAdapterViewHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
         Context context = viewGroup.getContext();
-        int layoutIdForListItem = R.layout.movie_list_item;
         LayoutInflater inflater = LayoutInflater.from(context);
         boolean shouldAttachToParentImmediately = false;
 
-        View view = inflater.inflate(layoutIdForListItem, viewGroup, shouldAttachToParentImmediately);
+        View view = inflater.inflate(R.layout.movie_list_item, viewGroup, shouldAttachToParentImmediately);
         return new MovieAdapterViewHolder(view);
     }
 
@@ -106,8 +132,8 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
      * passed into us.
      *
      * @param movieAdapterViewHolder The ViewHolder which should be updated to represent the
-     *                                  contents of the item at the given position in the data set.
-     * @param position                  The position of the item within the adapter's data set.
+     *                               contents of the item at the given position in the data set.
+     * @param position               The position of the item within the adapter's data set.
      */
     @Override
     public void onBindViewHolder(MovieAdapterViewHolder movieAdapterViewHolder, int position) {
@@ -115,20 +141,20 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieAdapter
         movieAdapterViewHolder.populateUI(md);
     }
 
-    /**
-     * This method simply returns the number of items to display. It is used behind the scenes
-     * to help layout our Views and for animations.
-     *
-     * @return The number of items available in list
-     */
-    @Override
-    public int getItemCount() {
-        if (null == mMovieData) return 0;
-        return mMovieData.size();
+    public void setData(List<MovieDetail> movieData, MainViewModel vm) {
+        mMovieData = movieData;
+        setFavourites(vm.getFavouriteMovieEntries());
     }
 
-    public void setData(List<MovieDetail> movieData) {
-        mMovieData = movieData;
-        notifyDataSetChanged();
+    public void setMainActivity(MainActivity mainActivity) {
+        this.mainActivity = mainActivity;
+    }
+
+    public void addToFav(FavouriteMovieEntry entry) {
+        mFavMap.put(entry.getId(), entry);
+    }
+
+    public void removeFromFav(FavouriteMovieEntry entry) {
+        mFavMap.remove(entry.getId());
     }
 }

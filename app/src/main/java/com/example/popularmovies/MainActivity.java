@@ -1,6 +1,7 @@
 package com.example.popularmovies;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProviders;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -9,41 +10,55 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.example.popularmovies.database.AppDatabase;
+import com.example.popularmovies.database.FavouriteMovieEntry;
 import com.example.popularmovies.model.MovieDetail;
 import com.example.popularmovies.utils.JsonUtils;
 import com.example.popularmovies.utils.NetworkUtils;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.Executors;
+
+import butterknife.BindView;
+import butterknife.ButterKnife;
 
 public class MainActivity extends AppCompatActivity implements MovieAdapter.MovieAdapterOnClickHandler {
-    private RecyclerView mRecyclerView;
     private MovieAdapter mMovieAdapter;
+    private AppDatabase mDb;
 
-    private TextView mErrorMessageDisplay;
-    private ProgressBar mLoadingIndicator;
+    @BindView(R.id.rv_movie)
+    RecyclerView mRecyclerView;
+    @BindView(R.id.tv_error_message_display)
+    TextView mErrorMessageDisplay;
+    @BindView(R.id.pb_loading_indicator)
+    ProgressBar mLoadingIndicator;
 
-    public static final NetworkUtils.FilterType DEFAULT_TYPE = NetworkUtils.FilterType.popular;
+    Menu menu;
+    HashMap<Integer, MovieDetail> movieMap = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mRecyclerView = findViewById(R.id.rv_movie);
-        mErrorMessageDisplay = findViewById(R.id.tv_error_message_display);
-        mLoadingIndicator = findViewById(R.id.pb_loading_indicator);
+        ButterKnife.bind(this);
+        if(savedInstanceState == null) {
+            mDb = AppDatabase.getInstance(getApplicationContext());
+            getAndSetFavourite();
+        }
 
-        float valueInPixels = getResources().getDimension(R.dimen.poster_width) / getResources().getDisplayMetrics().density;
+        float valueInPixels = getResources().getDimension(R.dimen.poster_width_landscape) / getResources().getDisplayMetrics().density;
         int mNoOfColumns = calNumOfColumns(valueInPixels);
         GridLayoutManager layoutManager
                 = new GridLayoutManager(this, mNoOfColumns, GridLayoutManager.VERTICAL, false);
@@ -52,8 +67,26 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
         mMovieAdapter = new MovieAdapter(this);
         mRecyclerView.setAdapter(mMovieAdapter);
+        mMovieAdapter.setMainActivity(this);
+        MainViewModel vm = ViewModelProviders.of(this).get(MainViewModel.class);
+        loadMovieData(vm.getFilterByType());
+    }
 
-        loadMovieData(DEFAULT_TYPE);
+    public void getAndSetFavourite() {
+        MainViewModel vm = ViewModelProviders.of(this).get(MainViewModel.class);
+        vm.getEntryList().observe(this, (List<FavouriteMovieEntry> entryList) -> {
+            vm.setFavouriteMovieEntries(entryList);
+            if (mMovieAdapter != null) {
+                mMovieAdapter.setFavourites(entryList);
+                movieMap = vm.getMovieMap();
+                new singleMovieTask().execute(entryList.toArray(new FavouriteMovieEntry[entryList.size()]));
+            }
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
     }
 
     @Override
@@ -65,9 +98,39 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         startActivity(movieDetailIntent);
     }
 
+    public void onFavouriteClick(MovieDetail md) {
+        FavouriteMovieEntry entry = new FavouriteMovieEntry(md);
+        md.setFavourite(!md.isFavourite());
+        Executors.newSingleThreadExecutor().execute(() -> {
+            long id = mDb.favouriteMovieDAO().insert(entry);
+            if (id == -1L) {
+                mMovieAdapter.removeFromFav(entry);
+                mDb.favouriteMovieDAO().delete(entry);
+            } else {
+                mMovieAdapter.addToFav(entry);
+            }
+        });
+    }
+
     private void loadMovieData(NetworkUtils.FilterType type) {
-        showDataView(true);
-        new movieTask().execute(type);
+        MainViewModel vm = ViewModelProviders.of(this).get(MainViewModel.class);
+        type = type == null ? NetworkUtils.FilterType.popular: type;
+
+        if(vm.needUPdate(type)) {
+            if(type == NetworkUtils.FilterType.topRated || type == NetworkUtils.FilterType.popular) {
+                showDataView(true);
+                new movieTask().execute(type);
+            } else {
+                if (vm.getFavouriteMovieList() != null) {
+                    mMovieAdapter.setData(vm.getFavouriteMovieList(),vm);
+                    vm.setMovieDetailList(vm.getFavouriteMovieList());
+                }
+            }
+        } else {
+            mLoadingIndicator.setVisibility(View.INVISIBLE);
+            mMovieAdapter.setData(vm.getMovieDetailList(),vm);
+        }
+        vm.setFilterByType(type);
     }
 
     private void showDataView(boolean show) {
@@ -108,10 +171,49 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         protected void onPostExecute(List<MovieDetail> movieDetailList) {
             mLoadingIndicator.setVisibility(View.INVISIBLE);
             if (movieDetailList != null) {
-                showDataView(true);
-                mMovieAdapter.setData(movieDetailList);
+                MainViewModel vm = ViewModelProviders.of(MainActivity.this).get(MainViewModel.class);
+                mMovieAdapter.setData(movieDetailList, vm);
+                vm.setMovieDetailList(movieDetailList);
+                for (MovieDetail md : movieDetailList) {
+                    vm.getMovieMap().put(md.getId(), md);
+                }
+            }
+            showDataView(movieDetailList != null && !movieDetailList.isEmpty());
+        }
+    }
+
+    public class singleMovieTask extends AsyncTask<FavouriteMovieEntry, Void, List<MovieDetail>> {
+        @Override
+        protected List<MovieDetail> doInBackground(FavouriteMovieEntry... params) {
+            if (params.length == 0) {
+                return null;
+            }
+
+            ArrayList<MovieDetail> favouriteMovieList = new ArrayList<>();
+            for (FavouriteMovieEntry entry : params) {
+                MovieDetail md = movieMap.get(entry.getId());
+                if(md == null) {
+                    URL url = NetworkUtils.buildUrlMovie(entry.getId());
+                    try {
+                        String jsonResponse = NetworkUtils.getResponseFromHttpUrl(url);
+                        md = JsonUtils.parseSingleMovieJson(jsonResponse);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+                favouriteMovieList.add(md);
+            }
+            return favouriteMovieList;
+        }
+
+        @Override
+        protected void onPostExecute(List<MovieDetail> movieDetailList) {
+            MainViewModel vm = ViewModelProviders.of(MainActivity.this).get(MainViewModel.class);
+            vm.setFavouriteMovieList(movieDetailList);
+            if (vm.getFilterByType() == NetworkUtils.FilterType.favourite) {
+                mMovieAdapter.setData(movieDetailList, vm);
             } else {
-                showDataView(false);
+                mMovieAdapter.setFavourites(vm.getFavouriteMovieEntries());
             }
         }
     }
@@ -120,16 +222,19 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main_menu, menu);
+        this.menu = menu;
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-
         if (id == R.id.sort_rating || id == R.id.sort_popular) {
             NetworkUtils.FilterType type = id == R.id.sort_rating ? NetworkUtils.FilterType.topRated : NetworkUtils.FilterType.popular;
             loadMovieData(type);
+            return true;
+        } else if (id == R.id.action_favourite) {
+            loadMovieData(NetworkUtils.FilterType.favourite);
             return true;
         }
 
