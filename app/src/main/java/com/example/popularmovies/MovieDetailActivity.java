@@ -65,7 +65,6 @@ public class MovieDetailActivity extends AppCompatActivity {
 
     int trailerELVHeight;
     int reviewELVHeight;
-    MovieDetail movieDetail = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,8 +78,9 @@ public class MovieDetailActivity extends AppCompatActivity {
                 closeOnError();
             }
 
+            MovieDetail md = null;
             try {
-                movieDetail = (MovieDetail) intent.getSerializableExtra(MovieDetail.CLASSNAME);
+                md = (MovieDetail) intent.getSerializableExtra(MovieDetail.CLASSNAME);
             } catch (NullPointerException e) {
                 e.printStackTrace();
                 closeOnError();
@@ -88,7 +88,7 @@ public class MovieDetailActivity extends AppCompatActivity {
             }
 
             DetailViewModel vm = ViewModelProviders.of(this).get(DetailViewModel.class);
-            vm.setMovieDetail(movieDetail);
+            vm.setMovieDetail(md);
         }
         populateUI();
     }
@@ -166,8 +166,10 @@ public class MovieDetailActivity extends AppCompatActivity {
 
     @OnClick(R.id.button_favorite_detail)
     public void favClicked() {
-        FavouriteMovieEntry entry = new FavouriteMovieEntry(movieDetail);
-        movieDetail.setFavourite(!movieDetail.isFavourite());
+        DetailViewModel vm = ViewModelProviders.of(MovieDetailActivity.this).get(DetailViewModel.class);
+        MovieDetail md = vm.getMovieDetail();
+        FavouriteMovieEntry entry = new FavouriteMovieEntry(md);
+        md.setFavourite(!md.isFavourite());
         Executors.newSingleThreadExecutor().execute(() -> {
             AppDatabase mDb = AppDatabase.getInstance(getApplicationContext());
             long id = mDb.favouriteMovieDAO().insert(entry);

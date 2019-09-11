@@ -35,7 +35,6 @@ import butterknife.ButterKnife;
 
 public class MainActivity extends AppCompatActivity implements MovieAdapter.MovieAdapterOnClickHandler {
     private MovieAdapter mMovieAdapter;
-    private AppDatabase mDb;
 
     @BindView(R.id.rv_movie)
     RecyclerView mRecyclerView;
@@ -54,7 +53,6 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
 
         ButterKnife.bind(this);
         if(savedInstanceState == null) {
-            mDb = AppDatabase.getInstance(getApplicationContext());
             getAndSetFavourite();
         }
 
@@ -102,6 +100,7 @@ public class MainActivity extends AppCompatActivity implements MovieAdapter.Movi
         FavouriteMovieEntry entry = new FavouriteMovieEntry(md);
         md.setFavourite(!md.isFavourite());
         Executors.newSingleThreadExecutor().execute(() -> {
+            AppDatabase mDb = AppDatabase.getInstance(getApplicationContext());
             long id = mDb.favouriteMovieDAO().insert(entry);
             if (id == -1L) {
                 mMovieAdapter.removeFromFav(entry);
